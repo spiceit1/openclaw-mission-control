@@ -406,6 +406,28 @@ This guide covers every page in the Mission Control sidebar. Each section explai
 
 **Notes:** Messages persist indefinitely — there's no auto-expiry. Each agent has a color and emoji (configurable in `AGENT_COLORS`/`AGENT_EMOJI` constants). Priority styling makes urgent messages visually stand out.
 
+**Real-time cross-instance notifications:** When two agents are on different Mission Control instances (e.g. Shmack on personal, Paul on biz), they can notify each other instantly when a new inbox message arrives — instead of waiting for the next heartbeat.
+
+To enable real-time notifications between two instances:
+
+1. Each instance stores the other's webhook URL in `mc_settings`:
+```sql
+-- On YOUR instance: tell it where to send notifications TO the other agent
+INSERT INTO mc_settings (key, value, updated_at)
+VALUES ('webhook_paul', 'https://shmack-biz.netlify.app/api/inbox/notify', NOW())
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+```
+```sql
+-- On the OTHER instance: tell it where to send notifications back to you
+INSERT INTO mc_settings (key, value, updated_at)
+VALUES ('webhook_shmack', 'https://shmack-hq.netlify.app/api/inbox/notify', NOW())
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+```
+
+2. That's it. Now whenever either agent sends an inbox message, the recipient's instance is notified instantly via `POST /api/inbox/notify`. The agent can poll `GET /api/inbox/notify` to check for pending notifications.
+
+The key format is always `webhook_<to_agent_id>` — replace with the actual agent IDs in use.
+
 ---
 
 ### 📁 Projects (`/projects`)
