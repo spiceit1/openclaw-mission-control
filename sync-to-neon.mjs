@@ -337,6 +337,8 @@ async function syncAgentStatus() {
           statusText = "STANDBY — waiting for orders";
         }
         await sql`UPDATE mc_agent_status SET status=${status}, status_text=${statusText}, last_active_at=${updatedAt.toISOString()}, updated_at=NOW() WHERE agent_id='main'`;
+        // Also update mc_factory_agents for Shmack
+        await sql`UPDATE mc_factory_agents SET status=${status}, task_summary=${statusText}, updated_at=NOW() WHERE id='shmack'`;
         // Also update model in mc_team
         const currentModel = mainSession.model || mainSession.modelId || null;
         if (currentModel) {
@@ -367,18 +369,22 @@ async function syncAgentStatus() {
             const updatedAt = new Date(mainSession2.updatedAt || mainSession2.startedAt);
             const minsAgo = (Date.now() - updatedAt.getTime()) / 60000;
             await sql`UPDATE mc_agent_status SET status='idle', status_text=${`IDLE — last active ${Math.round(minsAgo)}m ago`}, last_active_at=${updatedAt.toISOString()}, updated_at=NOW() WHERE agent_id='main'`;
+            await sql`UPDATE mc_factory_agents SET status='idle', task_summary=${`IDLE — last active ${Math.round(minsAgo)}m ago`}, updated_at=NOW() WHERE id='shmack'`;
           } else {
             await sql`UPDATE mc_agent_status SET status='standby', status_text='STANDBY — waiting for orders', updated_at=NOW() WHERE agent_id='main'`;
+            await sql`UPDATE mc_factory_agents SET status='idle', task_summary='STANDBY — waiting for orders', updated_at=NOW() WHERE id='shmack'`;
           }
         } catch {
           await sql`UPDATE mc_agent_status SET status='standby', status_text='STANDBY — waiting for orders', updated_at=NOW() WHERE agent_id='main'`;
+          await sql`UPDATE mc_factory_agents SET status='idle', task_summary='STANDBY — waiting for orders', updated_at=NOW() WHERE id='shmack'`;
         }
       }
     } catch (e) {
       console.log("  Could not check main session:", e.message);
     }
 
-    // ── Scout (scanner) ──
+    // ── Scout (scanner) — now tracked via mc_factory_agents as Dedicated Agent, not mc_agent_status ──
+    // Update factory_agents status instead
     try {
       const scannerLog = path.join(WORKSPACE, "deal-scanner/scanner.log");
       const content = fs.readFileSync(scannerLog, "utf-8");
@@ -396,13 +402,26 @@ async function syncAgentStatus() {
         const minsSinceLast = msSinceLast / 60000;
         const scanIntervalMins = 20; // runs every 20 min
         if (minsSinceLast <= 2) {
-          await sql`UPDATE mc_agent_status SET status='active', status_text='SCANNING — finding deals...', last_active_at=${lastTimestamp}, updated_at=NOW() WHERE agent_id='scanner'`;
+          // Currently scanning
+          await sql`UPDATE mc_factory_agents SET status='active', task_summary='SCANNING — finding deals...', updated_at=NOW() WHERE id='scout'`;
+        } else if (minsSinceLast <= 5) {
+          // Just finished — parse actual deal count from log
+          let dealCount = 0;
+          for (let i = lines.length - 1; i >= Math.max(0, lines.length - 20); i--) {
+            const dealMatch = lines[i].match(/Found (\d+) new deal/);
+            if (dealMatch) { dealCount = parseInt(dealMatch[1]); break; }
+          }
+          const statusText = dealCount > 0
+            ? `Completed scan — found ${dealCount} deal${dealCount > 1 ? 's' : ''}`
+            : `Completed scan — 0 deals found`;
+          await sql`UPDATE mc_factory_agents SET status='completed', task_summary=${statusText}, updated_at=NOW() WHERE id='scout'`;
         } else {
+          // Idle — waiting for next run
           const nextScanMins = Math.max(0, Math.ceil(scanIntervalMins - minsSinceLast));
           const statusText = nextScanMins === 0
             ? "IDLE — scan due now"
             : `IDLE — next scan in ${nextScanMins}m`;
-          await sql`UPDATE mc_agent_status SET status='idle', status_text=${statusText}, last_active_at=${lastTimestamp}, updated_at=NOW() WHERE agent_id='scanner'`;
+          await sql`UPDATE mc_factory_agents SET status='idle', task_summary=${statusText}, updated_at=NOW() WHERE id='scout'`;
         }
       }
     } catch {
