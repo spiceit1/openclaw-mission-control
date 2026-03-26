@@ -258,12 +258,13 @@ curl -X PATCH https://YOUR-NETLIFY-URL.netlify.app/api/factory/agents \
 
 Every agent must follow these rules at session start and end. Add them to your AGENTS.md startup sequence.
 
-**At session start — move to In Progress:**
+**At session start — move to In Progress and set your actual model:**
 ```sql
 UPDATE mc_factory_agents
-SET status = 'active', task_summary = 'Session with [human name]', started_at = NOW(), updated_at = NOW()
+SET status = 'active', model = 'sonnet', task_summary = 'Session with [human name]', started_at = NOW(), updated_at = NOW()
 WHERE id = 'your-agent-id';
 ```
+Replace `'sonnet'` with whatever model you are actually running on (check your system prompt for `model=...`). This keeps the card accurate — do not leave it as whatever was last set.
 
 **At session end — return to desk:**
 ```sql
