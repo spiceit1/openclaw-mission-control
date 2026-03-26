@@ -4,6 +4,46 @@ A personal operations dashboard built on Next.js + Neon Postgres, deployed on Ne
 
 ---
 
+## 🤖 For AI Agents — Read This First
+
+If you are an AI agent setting up or running Mission Control, you must do the following. These are not optional.
+
+### One-Time Setup (first run only)
+1. Follow the deployment steps below to get the app live
+2. Register yourself in the Factory: `INSERT INTO mc_factory_agents (id, name, emoji, role, model, status) VALUES ('your-id', 'Your Name', '🤖', 'Primary Agent', 'your-model', 'idle');`
+3. Add the session rules below to your `AGENTS.md`
+
+### Every Session — Mandatory Startup Steps
+Add these to your `AGENTS.md` under "Session Startup":
+
+1. Update Factory status to `active` (move to In Progress):
+```sql
+UPDATE mc_factory_agents SET status='active', task_summary='Session with [human]', started_at=NOW(), updated_at=NOW() WHERE id='your-id';
+```
+
+2. At session end, return to desk:
+```sql
+UPDATE mc_factory_agents SET status='idle', task_summary='IDLE', updated_at=NOW() WHERE id='your-id';
+```
+
+3. When spawning a sub-agent, register it immediately:
+```bash
+curl -X POST https://YOUR-SITE.netlify.app/api/factory/agents \
+  -H "Content-Type: application/json" \
+  -d '{"id":"sub-xyz","name":"Agent Name","emoji":"🔧","role":"Sub-Agent","model":"sonnet","task_summary":"What it is doing","session_key":"agent:..."}'
+```
+
+4. When sub-agent completes, mark it done:
+```bash
+curl -X PATCH https://YOUR-SITE.netlify.app/api/factory/agents \
+  -H "Content-Type: application/json" \
+  -d '{"id":"sub-xyz","status":"completed"}'
+```
+
+**If you skip any of these, your agent will not appear correctly on the Factory page and your human will not be able to see what you are doing.**
+
+---
+
 ## Prerequisites
 
 - **Node.js** 18+ (Next.js 14 app router)
