@@ -38,6 +38,13 @@ interface LiveAgent {
   taskId?: string;
   startedAt: string;
   completedAt?: string;
+  characterConfig?: {
+    skinColor?: string;
+    hairStyle?: string;
+    hairColor?: string;
+    premium?: boolean;
+    mugText?: string;
+  };
 }
 
 interface ScannerInfo {
@@ -351,6 +358,7 @@ function PersonFigure({
   agentId,
   agentName,
   pose,
+  characterConfig,
 }: {
   emoji: string;
   role: string;
@@ -361,13 +369,14 @@ function PersonFigure({
   agentId?: string;
   agentName?: string;
   pose?: "mouse" | "keyboard" | "thinking" | "relaxed" | "standing";
+  characterConfig?: { skinColor?: string; hairStyle?: string; hairColor?: string; premium?: boolean; mugText?: string };
 }) {
   const colors = getAgentColor(role, status);
   const isSmall = size === "small";
   const isShmackAgent = isShmack({ id: agentId, name: agentName });
-  const skinColor = isShmackAgent ? FACTORY_VARS.skinShmack : FACTORY_VARS.skinDefault;
-  const skinBorder = isShmackAgent ? "#e8c0a0" : "#c4956a";
-  // Shmack always wears purple — he's the boss
+  // Use characterConfig if available, fall back to Shmack detection
+  const skinColor = characterConfig?.skinColor || (isShmackAgent ? FACTORY_VARS.skinShmack : FACTORY_VARS.skinDefault);
+  const skinBorder = skinColor === FACTORY_VARS.skinShmack ? "#e8c0a0" : "#c4956a";
   const shirtColor = isShmackAgent ? "#7c5cfc" : colors.shirt;
   const shirtBorder = isShmackAgent ? "#9b7cff" : colors.border;
 
@@ -392,28 +401,48 @@ function PersonFigure({
         animation: bouncing ? "agentBounce 1s ease-in-out infinite" : "none",
       }}
     >
-      {/* Hair */}
-      {isShmackAgent ? (
-        <div style={{ display: "flex", gap: isSmall ? 1 : 0, marginBottom: isSmall ? -8 : -10, zIndex: 5, position: "relative" }}>
-          <div style={{ width: isSmall ? 5 : 6, height: isSmall ? 7 : 14, background: "#b03820", borderRadius: "50% 50% 20% 20%", transform: "rotate(-30deg)", marginRight: -1 }} />
-          <div style={{ width: isSmall ? 4 : 7, height: isSmall ? 9 : 18, background: "#c0442a", borderRadius: "50% 50% 20% 20%", transform: "rotate(-12deg)" }} />
-          <div style={{ width: isSmall ? 5 : 8, height: isSmall ? 10 : 20, background: "#d45535", borderRadius: "50% 50% 15% 15%", transform: "rotate(-3deg)" }} />
-          <div style={{ width: isSmall ? 5 : 9, height: isSmall ? 11 : 22, background: "#e06040", borderRadius: "50% 50% 15% 15%" }} />
-          <div style={{ width: isSmall ? 5 : 8, height: isSmall ? 10 : 20, background: "#d45535", borderRadius: "50% 50% 15% 15%", transform: "rotate(3deg)" }} />
-          <div style={{ width: isSmall ? 4 : 7, height: isSmall ? 9 : 18, background: "#c0442a", borderRadius: "50% 50% 20% 20%", transform: "rotate(12deg)" }} />
-          <div style={{ width: isSmall ? 5 : 6, height: isSmall ? 7 : 14, background: "#b03820", borderRadius: "50% 50% 20% 20%", transform: "rotate(30deg)", marginLeft: -1 }} />
-        </div>
-      ) : (
-        <div style={{
-          width: headSize * 0.9,
-          height: isSmall ? 6 : 10,
-          background: "#3a2a1a",
-          borderRadius: `${isSmall ? 5 : 8}px ${isSmall ? 5 : 8}px 1px 1px`,
-          marginBottom: isSmall ? -5 : -8,
-          zIndex: 5,
-          position: "relative",
-        }} />
-      )}
+      {/* Hair — driven by characterConfig */}
+      {(() => {
+        const hs = characterConfig?.hairStyle || (isShmackAgent ? "redspiky" : "short");
+        const hc = characterConfig?.hairColor || (isShmackAgent ? "#c0442a" : "#3a2a1a");
+        if (hs === "none") return null;
+        if (hs === "redspiky") return (
+          <div style={{ display: "flex", gap: isSmall ? 1 : 0, marginBottom: isSmall ? -8 : -10, zIndex: 5, position: "relative" }}>
+            <div style={{ width: isSmall ? 5 : 6, height: isSmall ? 7 : 14, background: hc, borderRadius: "50% 50% 20% 20%", transform: "rotate(-30deg)", marginRight: -1, opacity: 0.8 }} />
+            <div style={{ width: isSmall ? 4 : 7, height: isSmall ? 9 : 18, background: hc, borderRadius: "50% 50% 20% 20%", transform: "rotate(-12deg)" }} />
+            <div style={{ width: isSmall ? 5 : 8, height: isSmall ? 10 : 20, background: hc, borderRadius: "50% 50% 15% 15%", transform: "rotate(-3deg)", filter: "brightness(1.15)" }} />
+            <div style={{ width: isSmall ? 5 : 9, height: isSmall ? 11 : 22, background: hc, borderRadius: "50% 50% 15% 15%", filter: "brightness(1.25)" }} />
+            <div style={{ width: isSmall ? 5 : 8, height: isSmall ? 10 : 20, background: hc, borderRadius: "50% 50% 15% 15%", transform: "rotate(3deg)", filter: "brightness(1.15)" }} />
+            <div style={{ width: isSmall ? 4 : 7, height: isSmall ? 9 : 18, background: hc, borderRadius: "50% 50% 20% 20%", transform: "rotate(12deg)" }} />
+            <div style={{ width: isSmall ? 5 : 6, height: isSmall ? 7 : 14, background: hc, borderRadius: "50% 50% 20% 20%", transform: "rotate(30deg)", marginLeft: -1, opacity: 0.8 }} />
+          </div>
+        );
+        if (hs === "long") return (
+          <div style={{ position: "relative", marginBottom: isSmall ? -8 : -10, zIndex: 5 }}>
+            <div style={{ width: headSize * 1.1, height: isSmall ? 10 : 16, background: hc, borderRadius: `${isSmall ? 6 : 10}px ${isSmall ? 6 : 10}px 0 0` }} />
+            <div style={{ position: "absolute", left: -2, top: isSmall ? 6 : 10, width: isSmall ? 5 : 7, height: isSmall ? 14 : 22, background: hc, borderRadius: "2px 0 4px 4px" }} />
+            <div style={{ position: "absolute", right: -2, top: isSmall ? 6 : 10, width: isSmall ? 5 : 7, height: isSmall ? 14 : 22, background: hc, borderRadius: "0 2px 4px 4px" }} />
+          </div>
+        );
+        if (hs === "bun") return (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: isSmall ? -8 : -10, zIndex: 5 }}>
+            <div style={{ width: isSmall ? 10 : 14, height: isSmall ? 10 : 14, borderRadius: "50%", background: hc, marginBottom: -4 }} />
+            <div style={{ width: headSize * 0.9, height: isSmall ? 6 : 10, background: hc, borderRadius: `${isSmall ? 5 : 8}px ${isSmall ? 5 : 8}px 1px 1px` }} />
+          </div>
+        );
+        // Default: short
+        return (
+          <div style={{
+            width: headSize * 0.9,
+            height: isSmall ? 6 : 10,
+            background: hc,
+            borderRadius: `${isSmall ? 5 : 8}px ${isSmall ? 5 : 8}px 1px 1px`,
+            marginBottom: isSmall ? -5 : -8,
+            zIndex: 5,
+            position: "relative",
+          }} />
+        );
+      })()}
 
       {/* Head */}
       <div style={{
@@ -605,13 +634,14 @@ function AgentDesk({
   onClick,
   onMount,
 }: {
-  agent: { id: string; name: string; emoji: string; role: string; model?: string; status: string; taskSummary?: string };
+  agent: { id: string; name: string; emoji: string; role: string; model?: string; status: string; taskSummary?: string; characterConfig?: { skinColor?: string; hairStyle?: string; hairColor?: string; premium?: boolean; mugText?: string } };
   isWorking: boolean;
   onClick?: () => void;
   onMount?: (el: HTMLDivElement | null) => void;
 }) {
   const primary = isPrimaryAgent(agent.role, agent.status);
   const isSub = agent.role === "Sub-Agent";
+  const isPremium = agent.characterConfig?.premium || isShmack(agent);
   const colors = getAgentColor(agent.role, agent.status);
   const modelStr = agent.model || "";
   const modelColor = modelStr.includes("opus") ? "#f0b429" : modelStr.includes("haiku") ? "#26c97a" : "#7c5cfc";
@@ -725,6 +755,7 @@ function AgentDesk({
               agentId={agent.id}
               agentName={agent.name}
               pose={agentPose}
+              characterConfig={agent.characterConfig}
             />
           </div>
         )}
@@ -1954,10 +1985,11 @@ export default function AgentFactoryPage() {
     status: string;
     taskSummary?: string;
     source: "factory" | "team";
+    characterConfig?: { skinColor?: string; hairStyle?: string; hairColor?: string; premium?: boolean; mugText?: string };
   };
 
   const allDedicated: DeskAgent[] = [
-    ...dedicatedFromFactory.map(a => ({ id: a.id, name: a.name, emoji: a.emoji, role: a.role, model: a.model, status: a.status, taskSummary: a.taskSummary, source: "factory" as const })),
+    ...dedicatedFromFactory.map(a => ({ id: a.id, name: a.name, emoji: a.emoji, role: a.role, model: a.model, status: a.status, taskSummary: a.taskSummary, characterConfig: a.characterConfig, source: "factory" as const })),
     ...standbyFromTeam.map(a => ({
       id: a.id, name: a.name, emoji: a.emoji, role: a.role,
       model: a.model, status: a.status, taskSummary: a.statusText || "",
@@ -1967,7 +1999,7 @@ export default function AgentFactoryPage() {
 
   // Build desk agents list (primary + dedicated that have desks)
   const deskAgents: DeskAgent[] = [
-    ...primaryAgents.map(a => ({ id: a.id, name: a.name, emoji: a.emoji, role: a.role, model: a.model, status: a.status, taskSummary: a.taskSummary, source: "factory" as const })),
+    ...primaryAgents.map(a => ({ id: a.id, name: a.name, emoji: a.emoji, role: a.role, model: a.model, status: a.status, taskSummary: a.taskSummary, characterConfig: a.characterConfig, source: "factory" as const })),
     ...allDedicated,
   ];
 
@@ -2135,6 +2167,7 @@ export default function AgentFactoryPage() {
                             model: a.model,
                             status: a.status,
                             taskSummary: a.taskSummary,
+                            characterConfig: a.characterConfig,
                           }}
                           isWorking={isWorking}
                           onClick={() => setSelectedAgent(a)}
@@ -2518,6 +2551,99 @@ export default function AgentFactoryPage() {
                     <div style={{ fontSize: "13px", color: "var(--text-primary)" }}>{new Date(selectedAgent.completedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
                   </div>
                 )}
+              </div>
+
+              {/* ── Appearance Editor ── */}
+              <div style={{ padding: "12px", borderRadius: "8px", background: "var(--bg-primary)", border: "1px solid var(--border-subtle)" }}>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-tertiary)", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.05em" }}>✨ Appearance</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "12px" }}>
+                  <PersonFigure
+                    emoji={selectedAgent.emoji}
+                    role={selectedAgent.role}
+                    agentId={selectedAgent.id}
+                    agentName={selectedAgent.name}
+                    characterConfig={selectedAgent.characterConfig}
+                    size="normal"
+                  />
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>Preview</div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <div>
+                    <label style={{ fontSize: "10px", color: "var(--text-tertiary)", display: "block", marginBottom: "3px" }}>Skin Color</label>
+                    <input
+                      type="color"
+                      defaultValue={selectedAgent.characterConfig?.skinColor || "#d4a574"}
+                      onChange={async (e) => {
+                        const res = await fetch("/api/factory/agents", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: selectedAgent.id, character_config: { ...selectedAgent.characterConfig, skinColor: e.target.value } }),
+                        });
+                        if (res.ok) { const d = await fetch('/api/factory').then(r=>r.json()); setData(d); const updated = (d.liveAgents||[]).find((a:any)=>a.id===selectedAgent.id); if(updated) setSelectedAgent(updated); }
+                      }}
+                      style={{ width: "100%", height: "28px", border: "1px solid var(--border-subtle)", borderRadius: "4px", background: "var(--bg-secondary)", cursor: "pointer" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "10px", color: "var(--text-tertiary)", display: "block", marginBottom: "3px" }}>Hair Color</label>
+                    <input
+                      type="color"
+                      defaultValue={selectedAgent.characterConfig?.hairColor || "#4a3520"}
+                      onChange={async (e) => {
+                        const res = await fetch("/api/factory/agents", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: selectedAgent.id, character_config: { ...selectedAgent.characterConfig, hairColor: e.target.value } }),
+                        });
+                        if (res.ok) { const d = await fetch('/api/factory').then(r=>r.json()); setData(d); const updated = (d.liveAgents||[]).find((a:any)=>a.id===selectedAgent.id); if(updated) setSelectedAgent(updated); }
+                      }}
+                      style={{ width: "100%", height: "28px", border: "1px solid var(--border-subtle)", borderRadius: "4px", background: "var(--bg-secondary)", cursor: "pointer" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "10px", color: "var(--text-tertiary)", display: "block", marginBottom: "3px" }}>Hair Style</label>
+                    <select
+                      defaultValue={selectedAgent.characterConfig?.hairStyle || "short"}
+                      onChange={async (e) => {
+                        const res = await fetch("/api/factory/agents", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: selectedAgent.id, character_config: { ...selectedAgent.characterConfig, hairStyle: e.target.value } }),
+                        });
+                        if (res.ok) { const d = await fetch('/api/factory').then(r=>r.json()); setData(d); const updated = (d.liveAgents||[]).find((a:any)=>a.id===selectedAgent.id); if(updated) setSelectedAgent(updated); }
+                      }}
+                      style={{ width: "100%", height: "28px", border: "1px solid var(--border-subtle)", borderRadius: "4px", background: "var(--bg-secondary)", color: "var(--text-primary)", fontSize: "12px", cursor: "pointer" }}
+                    >
+                      <option value="short">Short</option>
+                      <option value="long">Long</option>
+                      <option value="bun">Bun</option>
+                      <option value="redspiky">Red Spiky</option>
+                      <option value="none">None</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "10px", color: "var(--text-tertiary)", display: "block", marginBottom: "3px" }}>Premium Desk</label>
+                    <button
+                      onClick={async () => {
+                        const newVal = !(selectedAgent.characterConfig?.premium);
+                        const res = await fetch("/api/factory/agents", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: selectedAgent.id, character_config: { ...selectedAgent.characterConfig, premium: newVal } }),
+                        });
+                        if (res.ok) { const d = await fetch('/api/factory').then(r=>r.json()); setData(d); const updated = (d.liveAgents||[]).find((a:any)=>a.id===selectedAgent.id); if(updated) setSelectedAgent(updated); }
+                      }}
+                      style={{
+                        width: "100%", height: "28px", border: "1px solid var(--border-subtle)", borderRadius: "4px",
+                        background: selectedAgent.characterConfig?.premium ? "#7c5cfc18" : "var(--bg-secondary)",
+                        color: selectedAgent.characterConfig?.premium ? "#7c5cfc" : "var(--text-tertiary)",
+                        fontSize: "11px", fontWeight: 600, cursor: "pointer",
+                      }}
+                    >
+                      {selectedAgent.characterConfig?.premium ? "👑 ON" : "OFF"}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
