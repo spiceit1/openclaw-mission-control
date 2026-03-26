@@ -150,15 +150,15 @@ The Factory page (`/factory`) is the visual hub for your AI agents. It has three
 ### Register Yourself (Primary Agent)
 
 ```sql
-INSERT INTO mc_factory_agents (id, name, emoji, role, model, agent_type, status)
-VALUES ('paul', 'Paul', '🤖', 'Primary Agent', 'claude-sonnet', 'primary', 'active');
+INSERT INTO mc_factory_agents (id, name, emoji, role, model, status)
+VALUES ('paul', 'Paul', '🤖', 'Primary Agent', 'claude-sonnet', 'active');
 ```
 
 ### Register a Dedicated Agent (e.g. a scheduled scanner)
 
 ```sql
-INSERT INTO mc_factory_agents (id, name, emoji, role, model, agent_type, status, scheduled_interval_min)
-VALUES ('paul-scanner', 'Scanner', '🔍', 'Deal Scanner', 'haiku', 'dedicated', 'standby', 120);
+INSERT INTO mc_factory_agents (id, name, emoji, role, model, status, task_summary)
+VALUES ('paul-scanner', 'Scanner', '🔍', 'Deal Scanner', 'haiku', 'standby', 'Runs every 2 hours');
 ```
 
 Update `status` to `'active'` when it starts running, back to `'standby'` when done.
@@ -166,13 +166,22 @@ Update `status` to `'active'` when it starts running, back to `'standby'` when d
 ### Register a Sub-Agent (when spawning a task agent)
 
 ```sql
-INSERT INTO mc_factory_agents (id, name, emoji, role, model, agent_type, status, task_summary)
-VALUES ('sub-xyz', 'Research Agent', '📊', 'Sub-Agent', 'sonnet', 'sub-agent', 'active', 'Analyzing Q1 data');
+INSERT INTO mc_factory_agents (id, name, emoji, role, model, status, task_summary, session_key)
+VALUES ('sub-xyz', 'Research Agent', '📊', 'Sub-Agent', 'sonnet', 'active', 'Analyzing Q1 data', 'agent:main:subagent:...');
+```
+
+Or via API (recommended — works from any agent on any machine):
+```bash
+curl -X POST https://YOUR-NETLIFY-URL.netlify.app/api/factory/agents \
+  -H "Content-Type: application/json" \
+  -d '{"id":"sub-xyz","name":"Research Agent","emoji":"📊","role":"Sub-Agent","model":"sonnet","task_summary":"Analyzing Q1 data","session_key":"agent:main:subagent:..."}'
 ```
 
 When the task is complete:
-```sql
-UPDATE mc_factory_agents SET status = 'completed' WHERE id = 'sub-xyz';
+```bash
+curl -X PATCH https://YOUR-NETLIFY-URL.netlify.app/api/factory/agents \
+  -H "Content-Type: application/json" \
+  -d '{"id":"sub-xyz","status":"completed"}'
 ```
 
 ### Status Values
