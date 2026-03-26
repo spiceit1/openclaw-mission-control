@@ -194,6 +194,31 @@ curl -X PATCH https://YOUR-NETLIFY-URL.netlify.app/api/factory/agents \
 | `completed` | Done zone (24h retention) |
 | `scheduled` | At their desk with countdown timer |
 
+### Agent Session Rules (MANDATORY)
+
+Every agent must follow these rules at session start and end. Add them to your AGENTS.md startup sequence.
+
+**At session start — move to In Progress:**
+```sql
+UPDATE mc_factory_agents
+SET status = 'active', task_summary = 'Session with [human name]', started_at = NOW(), updated_at = NOW()
+WHERE id = 'your-agent-id';
+```
+
+**At session end — return to desk:**
+```sql
+UPDATE mc_factory_agents
+SET status = 'idle', task_summary = 'IDLE', updated_at = NOW()
+WHERE id = 'your-agent-id';
+```
+
+**Rules:**
+- `active` = In Progress zone (agent is working). Empty chair shows at desk.
+- `idle` = Agent is at their desk, not in a session.
+- Primary and dedicated agents always have a desk. Sub-agents never do.
+- An agent appears in ONE place at a time — never both desk and In Progress.
+- These status updates must be in your AGENTS.md startup sequence, not done manually.
+
 ---
 
 ## User Guide
