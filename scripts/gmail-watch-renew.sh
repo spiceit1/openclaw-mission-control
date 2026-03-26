@@ -1,18 +1,24 @@
 #!/bin/bash
 # Renew Gmail push watch (expires every 7 days)
 # Called by cron daily
+#
+# Required env vars (set these before running):
+#   GMAIL_CLIENT_ID
+#   GMAIL_CLIENT_SECRET
+#   GMAIL_REFRESH_TOKEN
+#   GCP_PROJECT_ID
+#   PUBSUB_TOPIC (defaults to "gmail-push")
 
-REFRESH_TOKEN="YOUR_REFRESH_TOKEN"
-CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com"
-CLIENT_SECRET="YOUR_CLIENT_SECRET"
-# Set this after running setup-gmail-push.sh
-GCP_PROJECT_ID="${GCP_PROJECT_ID:-YOUR_GCP_PROJECT_ID}"
-PUBSUB_TOPIC="gmail-push-ddweck14"
+: "${GMAIL_CLIENT_ID:?Set GMAIL_CLIENT_ID}"
+: "${GMAIL_CLIENT_SECRET:?Set GMAIL_CLIENT_SECRET}"
+: "${GMAIL_REFRESH_TOKEN:?Set GMAIL_REFRESH_TOKEN}"
+: "${GCP_PROJECT_ID:?Set GCP_PROJECT_ID}"
+PUBSUB_TOPIC="${PUBSUB_TOPIC:-gmail-push}"
 
 GMAIL_TOKEN=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
-  -d "client_id=$CLIENT_ID" \
-  -d "client_secret=$CLIENT_SECRET" \
-  -d "refresh_token=$REFRESH_TOKEN" \
+  -d "client_id=$GMAIL_CLIENT_ID" \
+  -d "client_secret=$GMAIL_CLIENT_SECRET" \
+  -d "refresh_token=$GMAIL_REFRESH_TOKEN" \
   -d "grant_type=refresh_token" | python3 -c "import json,sys; print(json.load(sys.stdin).get('access_token',''))")
 
 RESULT=$(curl -s -X POST "https://gmail.googleapis.com/gmail/v1/users/me/watch" \
