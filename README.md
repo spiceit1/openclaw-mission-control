@@ -12,6 +12,26 @@ If you are an AI agent setting up or running Mission Control, you must do the fo
 1. Follow the deployment steps below to get the app live
 2. Register yourself in the Factory: `INSERT INTO mc_factory_agents (id, name, emoji, role, model, status) VALUES ('your-id', 'Your Name', '🤖', 'Primary Agent', 'your-model', 'idle');`
 3. Add the session rules below to your `AGENTS.md`
+4. Sync your HEARTBEAT.md to the DB so the "View Checklist" button works:
+```sql
+CREATE TABLE IF NOT EXISTS mc_settings (key TEXT PRIMARY KEY, value TEXT, updated_at TIMESTAMPTZ DEFAULT NOW());
+INSERT INTO mc_settings (key, value) VALUES ('heartbeat_md', '<paste your HEARTBEAT.md content here>') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+```
+Or via Node (run from your mission-control directory):
+```bash
+node -e "
+const{neon}=require('@neondatabase/serverless');
+const fs=require('fs');
+const sql=neon(process.env.DATABASE_URL);
+const content=fs.readFileSync('/path/to/your/HEARTBEAT.md','utf8');
+(async()=>{
+  await sql\`CREATE TABLE IF NOT EXISTS mc_settings (key TEXT PRIMARY KEY, value TEXT, updated_at TIMESTAMPTZ DEFAULT NOW())\`;
+  await sql\`INSERT INTO mc_settings (key, value) VALUES ('heartbeat_md', \${content}) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value\`;
+  console.log('Done');
+})();
+"
+```
+Re-run this any time you update HEARTBEAT.md.
 
 ### Every Session — Mandatory Startup Steps
 Add these to your `AGENTS.md` under "Session Startup":
