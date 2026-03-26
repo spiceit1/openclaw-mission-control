@@ -10,14 +10,19 @@ If you are an AI agent setting up or running Mission Control, you must do the fo
 
 ### One-Time Setup (first run only)
 1. Follow the deployment steps below to get the app live
-2. Register yourself in the Factory: `INSERT INTO mc_factory_agents (id, name, emoji, role, model, status) VALUES ('your-id', 'Your Name', '🤖', 'Primary Agent', 'your-model', 'idle');`
-3. Add the session rules below to your `AGENTS.md`
-4. Sync your HEARTBEAT.md to the DB so the "View Checklist" button works:
+2. Register yourself in the Factory:
 ```sql
-CREATE TABLE IF NOT EXISTS mc_settings (key TEXT PRIMARY KEY, value TEXT, updated_at TIMESTAMPTZ DEFAULT NOW());
-INSERT INTO mc_settings (key, value) VALUES ('heartbeat_md', '<paste your HEARTBEAT.md content here>') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+INSERT INTO mc_factory_agents (id, name, emoji, role, model, status)
+VALUES ('your-id', 'Your Name', '🤖', 'Primary Agent', 'your-model', 'idle');
 ```
-Or via Node (run from your mission-control directory):
+3. Give yourself the premium desk (big leather chair + mug) — all primary agents should have this:
+```sql
+UPDATE mc_factory_agents
+SET character_config = jsonb_set(COALESCE(character_config, '{}'::jsonb), '{premium}', 'true'::jsonb)
+WHERE id = 'your-id';
+```
+4. Add the session rules below to your `AGENTS.md`
+5. Sync your HEARTBEAT.md to the DB so the "View Checklist" button on the Heartbeat page works. Run from your mission-control directory:
 ```bash
 node -e "
 const{neon}=require('@neondatabase/serverless');
@@ -31,22 +36,28 @@ const content=fs.readFileSync('/path/to/your/HEARTBEAT.md','utf8');
 })();
 "
 ```
-Re-run this any time you update HEARTBEAT.md.
+Re-run this every time you update HEARTBEAT.md — otherwise the button will show stale content.
+
+6. Populate the Docs page with your core workspace files (see the Day One section under Docs in the User Guide below). Do this immediately — an empty Docs page means a new agent has nothing to refer to.
+7. Sync your memory files so the Memory Log page works — see the Memory Log section below.
 
 ### Every Session — Mandatory Startup Steps
 Add these to your `AGENTS.md` under "Session Startup":
 
-1. Update Factory status to `active` (move to In Progress):
+1. Update Factory status to `active`, set your actual runtime model, and move to In Progress:
 ```sql
-UPDATE mc_factory_agents SET status='active', task_summary='Session with [human]', started_at=NOW(), updated_at=NOW() WHERE id='your-id';
+UPDATE mc_factory_agents
+SET status = 'active', model = 'sonnet', task_summary = 'Session with [human name]', started_at = NOW(), updated_at = NOW()
+WHERE id = 'your-id';
 ```
+Replace `'sonnet'` with your actual runtime model. Check your system prompt for `model=` to find it.
 
 2. At session end, return to desk:
 ```sql
-UPDATE mc_factory_agents SET status='idle', task_summary='IDLE', updated_at=NOW() WHERE id='your-id';
+UPDATE mc_factory_agents SET status = 'idle', task_summary = 'IDLE', updated_at = NOW() WHERE id = 'your-id';
 ```
 
-3. When spawning a sub-agent, register it immediately:
+3. When spawning a sub-agent, register it immediately (before doing anything else):
 ```bash
 curl -X POST https://YOUR-SITE.netlify.app/api/factory/agents \
   -H "Content-Type: application/json" \
@@ -60,7 +71,9 @@ curl -X PATCH https://YOUR-SITE.netlify.app/api/factory/agents \
   -d '{"id":"sub-xyz","status":"completed"}'
 ```
 
-**If you skip any of these, your agent will not appear correctly on the Factory page and your human will not be able to see what you are doing.**
+5. After every heartbeat run, log what happened via `POST /api/heartbeat` (type: `ok`, `action`, `task`, or `alert`).
+
+**If you skip any of these, your human cannot see what you are doing. There are no exceptions.**
 
 ---
 
@@ -320,6 +333,8 @@ This guide covers every page in the Mission Control sidebar. Each section explai
 
 **Notes:** Three agent types — `primary` (always at desk), `dedicated` (desk when idle, In Progress when running), and `sub-agent` (In Progress only, no desk). Characters have customizable appearance via `characterConfig`.
 
+**Customizing your agent's appearance:** Click your agent card on the Factory page to open the detail modal. Click **Edit Appearance** to customize: skin color, hair style, hair color, mug text, and premium desk toggle (big leather chair + mug). Changes are saved to `character_config` in the DB immediately. Primary agents get the premium desk by default — you can toggle it off if you prefer a standard desk.
+
 ---
 
 ### 💓 Heartbeat Log (`/heartbeat`)
@@ -460,6 +475,24 @@ The goal: if you get wiped and start fresh, the Docs page should contain enough 
 **AI agent interaction:** The agent writes to `memory/YYYY-MM-DD.md` throughout each session (capturing decisions, context, and events), and periodically distills key lessons into `MEMORY.md`. These files are synced to the database via `POST /api/memory` and displayed here.
 
 **Notes:** This page is read-only from the UI — memory files are written by the agent, not edited here. The parser highlights `## HH:MM AM/PM — Title` timestamp headers, `**Field:** value` entries, and standard markdown structure. Data stored in `mc_memory_files`.
+
+**How to sync memory files to the DB:** The Memory Log page reads from `mc_memory_files`, not directly from the filesystem. You need to sync your memory files into the DB. Do this at the end of each session or whenever you write a significant memory entry:
+```bash
+node -e "
+const{neon}=require('@neondatabase/serverless');
+const fs=require('fs');
+const sql=neon(process.env.DATABASE_URL);
+const today=new Date().toISOString().split('T')[0];
+const path='/path/to/your/memory/' + today + '.md';
+if(!fs.existsSync(path)) { console.log('No file for today'); process.exit(0); }
+const content=fs.readFileSync(path,'utf8');
+(async()=>{
+  await sql\`INSERT INTO mc_memory_files (date, content, updated_at) VALUES (\${today}, \${content}, NOW()) ON CONFLICT (date) DO UPDATE SET content=EXCLUDED.content, updated_at=NOW()\`;
+  console.log('Synced memory for ' + today);
+})();
+"
+```
+Also sync MEMORY.md (long-term memory) using date = `'long-term'` as the key.
 
 ---
 
