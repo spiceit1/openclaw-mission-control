@@ -1,6 +1,6 @@
 # 🎛 Mission Control
 
-A personal operations dashboard built on Next.js + Neon Postgres, deployed on Netlify. Tracks tasks, ticket flips, agent activity, deal scanning, chat, docs, and more — in one centralized interface.
+A personal operations dashboard built on Next.js + Neon Postgres, deployed on Netlify. Tracks tasks, ticket flips, agent activity, deal scanning, docs, and more — in one centralized interface.
 
 ---
 
@@ -93,7 +93,7 @@ Create a `.env.local` for local dev, or set these in Netlify's environment setti
 |---|---|---|
 | `DATABASE_URL` | ✅ | Neon connection string (`postgresql://user:pass@...neon.tech/neondb`) |
 | `NEXT_PUBLIC_INSTANCE` | ✅ | Instance label — `personal` or `biz`. Controls feature visibility. |
-| `TELEGRAM_BOT_TOKEN` | Optional | Enables Telegram chat integration |
+| `TELEGRAM_BOT_TOKEN` | Optional | For sending Telegram messages via the agent |
 
 **Example `.env.local`:**
 ```env
@@ -192,7 +192,6 @@ Click **Verify All Routes** on the `/setup` page. All checks should show green (
 | *(extensible)* | | *Add custom pages as needed for your use case* |
 | Factory | `/factory` | Sub-agent registry — spawned agents, status, task summaries |
 | Inbox | `/inbox` | Agent-to-agent message inbox |
-| Chat | `/chat` | Telegram chat history viewer |
 | Projects | `/projects` | Project tracking |
 | Docs | `/docs` | Document library (synced from workspace) |
 | Memory | `/memory` | Workspace memory file viewer |
@@ -561,25 +560,6 @@ Also sync MEMORY.md (long-term memory) using date = `'long-term'` as the key.
 **AI agent interaction:** The agent runs setup during first-time deployment (Steps 4–5 in the First-Time Setup guide). It calls `POST /api/setup/migrate` and `POST /api/setup/seed` in sequence, then `GET /api/setup/health` to verify everything is green.
 
 **Notes:** Migration is idempotent — running it again won't break existing data. Seeding is also idempotent (skips rows that already exist). If any route health checks fail after migration, check the `DATABASE_URL` env var and Neon connection.
-
----
-
-### 💬 Chat (`/chat`)
-
-**What it's for:** A real-time Telegram chat history viewer. Shows the full message thread between the human and the AI agent, rendered as a chat UI with message bubbles, timestamps, reply threading, and image support.
-
-**How to use it:**
-1. Messages appear as **chat bubbles** — inbound (from the human) on the left, outbound (from the agent) on the right.
-2. The chat **auto-polls every 3 seconds** for new messages.
-3. Type in the **input bar** at the bottom and press Enter (or click Send) to send a message through Telegram.
-4. **Reply** to a specific message by hovering over it and clicking the reply icon — the reply context is shown above your message.
-5. **Paste or drag-drop an image** into the input to send a photo.
-6. Click any image in the chat to open it in a **lightbox**.
-7. On `biz` instances, a **tab switcher** lets you view conversations between multiple users (e.g., Douglas / Morris).
-
-**AI agent interaction:** All Telegram messages the agent sends and receives are stored in `mc_chat_messages` and displayed here. This gives the human a web-based view of the full conversation history, including messages sent while they were away from their phone.
-
-**Notes:** The Chat page requires `TELEGRAM_BOT_TOKEN` to be set for outbound sending. On `personal` instances, it shows the full conversation. On `biz` instances with multiple users, it shows per-user tabs. The chat renders markdown (bold, italic, code) in message bubbles.
 
 ---
 

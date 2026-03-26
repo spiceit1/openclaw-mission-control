@@ -15,7 +15,6 @@ import {
   Cpu,
   ClipboardList,
   Activity,
-  MessageSquare,
   Inbox,
   Menu,
   X,
@@ -27,8 +26,6 @@ import { BizChat } from "@/components/BizChat";
 const nav = [
   { href: "/factory", icon: Cpu, label: "Agent Factory" },
   { href: "/inbox", icon: Inbox, label: "Agent Inbox" },
-  // Chat removed — Douglas uses Telegram + Discord instead
-  // { href: "/chat", icon: MessageSquare, label: "Chat" },
   { href: "/heartbeat", icon: Activity, label: "Heartbeat" },
   { href: "/requests", icon: ClipboardList, label: "Requests" },
   { href: "/cron", icon: Calendar, label: "Cron Jobs" },
@@ -55,9 +52,7 @@ function SidebarContents({
   showChat?: boolean;
   hideChatOnChatPage?: boolean;
 }) {
-  // Hide sidebar chat when user is on the /chat page to avoid duplicate
-  const isOnChatPage = pathname === "/chat" || pathname.startsWith("/chat/");
-  const shouldShowChat = showChat && !isOnChatPage;
+  const shouldShowChat = showChat;
   return (
     <>
       {/* Logo / Brand */}
