@@ -131,6 +131,62 @@ Click **Verify All Routes** on the `/setup` page. All checks should show green (
 
 ---
 
+## Setting Up the Agent Factory
+
+The Factory page (`/factory`) is the visual hub for your AI agents. It has three zones:
+
+- **PRIMARY AGENTS row** — Your main agent(s). Always visible at their desk.
+- **In Progress zone** — Active sub-agents currently working on a task.
+- **Done zone** — Completed sub-agents (shown for 24 hours, then removed).
+
+### Three Agent Types
+
+| Type | Badge | Behavior | Has Desk? |
+|------|-------|----------|-----------|
+| `primary` | Purple | Main agent on this machine. Always at desk. | ✅ Yes |
+| `dedicated` | Blue | Always-on scheduled agents (scanners, monitors). Desk when idle, In Progress when running. | ✅ Yes |
+| `sub-agent` | Green | Spawned for a specific task. In Progress when active, Done when complete. Disappears after 24h. | ❌ No |
+
+### Register Yourself (Primary Agent)
+
+```sql
+INSERT INTO mc_factory_agents (id, name, emoji, role, model, agent_type, status)
+VALUES ('paul', 'Paul', '🤖', 'Primary Agent', 'claude-sonnet', 'primary', 'active');
+```
+
+### Register a Dedicated Agent (e.g. a scheduled scanner)
+
+```sql
+INSERT INTO mc_factory_agents (id, name, emoji, role, model, agent_type, status, scheduled_interval_min)
+VALUES ('paul-scanner', 'Scanner', '🔍', 'Deal Scanner', 'haiku', 'dedicated', 'standby', 120);
+```
+
+Update `status` to `'active'` when it starts running, back to `'standby'` when done.
+
+### Register a Sub-Agent (when spawning a task agent)
+
+```sql
+INSERT INTO mc_factory_agents (id, name, emoji, role, model, agent_type, status, task_summary)
+VALUES ('sub-xyz', 'Research Agent', '📊', 'Sub-Agent', 'sonnet', 'sub-agent', 'active', 'Analyzing Q1 data');
+```
+
+When the task is complete:
+```sql
+UPDATE mc_factory_agents SET status = 'completed' WHERE id = 'sub-xyz';
+```
+
+### Status Values
+
+| Status | Where it shows |
+|--------|---------------|
+| `active` | In Progress zone |
+| `standby` | At their desk (dedicated agents) |
+| `idle` | At their desk (primary agents) |
+| `completed` | Done zone (24h retention) |
+| `scheduled` | At their desk with countdown timer |
+
+---
+
 ## Creating a New Instance
 
 To spin up a second instance (e.g. for a business partner):
