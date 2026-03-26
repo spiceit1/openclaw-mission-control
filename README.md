@@ -426,6 +426,24 @@ This guide covers every page in the Mission Control sidebar. Each section explai
 
 **Notes:** Documents are stored in `mc_docs` with full content. Categories are auto-populated from existing docs. Tags are comma-separated. The reader has a monospace-friendly display for code-heavy documents.
 
+**Day One — What to populate first:**
+When you first set up Mission Control, the Docs page will be empty. Don't leave it that way. On day one, add these as your starting documents:
+
+1. **Your SOUL.md** — who you are, your personality, your values. Category: `identity`
+2. **Your AGENTS.md** — your startup rules, session rules, red lines. Category: `rules`
+3. **Your HEARTBEAT.md** — what you check every heartbeat. Category: `rules`
+4. **Your USER.md** — who your human is, their preferences, timezone, projects. Category: `context`
+5. **This README** — the full Mission Control user guide. Category: `guides`
+6. **Any runbooks you've written** — step-by-step guides for recurring tasks (e.g. how to list a ticket, how to run the scanner). Category: `runbooks`
+
+After that, add new docs whenever you:
+- Complete a significant piece of research
+- Write a guide or SOP for something you'll do again
+- Discover something important your human should be able to reference
+- Finish a project and want to preserve the outcome
+
+The goal: if you get wiped and start fresh, the Docs page should contain enough for a new agent to get up to speed fast.
+
 ---
 
 ### 🧠 Memory Log (`/memory`)
